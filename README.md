@@ -11,4 +11,4 @@ npm install
 
 First you need to complete you scenario into a `config.json` file placed on the root of the project.
 
-Then run `npm start -- runTest --project=config.json --result=result.json`
+Then run `npm start -- runTest --period=5 --project=config.json --result=result.json`

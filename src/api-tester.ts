@@ -4,13 +4,14 @@ import * as jmespath from 'jmespath';
 import * as createCsvWriter from 'csv-writer';
 import * as fs from 'fs';
 
-export interface APIProperties {
-    period: number; // Period in minutes
+export interface APITesterProperties {
     url?: string; // Query URL
     headers?: any; // Headers to put into the query
     method?: string; // GET, POST, PUT, DELETE
     params?: any; // Params to use on the request (query id method=GET, body otherwise)
     scenario?: RunRequestOptions[]; // A Scenario allows you to chain multiple requests and use the previous results
+    resultPath: string; // Path to the result CSV file
+    period: number; // Looping period (seconds)
 }
 
 export interface RunScenarioOptions {
@@ -30,16 +31,16 @@ interface ReplaceObjectOptions {
 }
 
 export class APITester {
-    private properties: APIProperties;
+    private properties: APITesterProperties;
     private csvWriter: any;
 
 
-    constructor(properties: APIProperties) {
+    constructor(properties: APITesterProperties) {
         this.properties = properties;
 
         // Configure the CSV file with the necessary columns
         this.csvWriter = createCsvWriter.createObjectCsvWriter({
-            path: 'request_times.csv',
+            path: this.properties.resultPath,
             header: [
                 { id: 'date', title: 'Date' },
                 { id: 'reqTime', title: 'Request Time (ms)' },
@@ -49,7 +50,7 @@ export class APITester {
         });
 
         // Clear the content of the CSV file
-        fs.writeFileSync('request_times.csv', '');
+        fs.writeFileSync(this.properties.resultPath, '');
 
         // Write the header
         this.writeToCsv_({
@@ -85,7 +86,7 @@ export class APITester {
                 reqFailed: reqSuccess === false ? 'Error' : '',
             });
 
-        }, 5000);
+        }, this.properties.period * 1000);
     }
 
     /**
