@@ -28,6 +28,7 @@
   "homepage": "https://github.com/ArmandBahi/api-perf-tester#readme",
   "dependencies": {
     "axios": "^1.6.7",
+    "jmespath": "^0.16.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
@@ -37,6 +38,7 @@
     "@babel/preset-env": "^7.23.9",
     "@babel/preset-typescript": "^7.23.3",
     "@types/archiver": "^6.0.2",
+    "@types/jmespath": "^0.15.2",
     "@types/n-readlines": "^1.0.6",
     "@types/node": "^20.11.7",
     "@types/parse-color": "^1.0.3",
