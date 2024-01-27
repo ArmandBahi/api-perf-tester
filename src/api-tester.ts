@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from "axios";
 import https from 'https';
 import * as jmespath from 'jmespath';
+import * as createCsvWriter from 'csv-writer';
+import * as fs from 'fs';
 
 export interface APIProperties {
     period: number; // Period in minutes
@@ -29,9 +31,32 @@ interface ReplaceObjectOptions {
 
 export class APITester {
     private properties: APIProperties;
+    private csvWriter: any;
+
 
     constructor(properties: APIProperties) {
         this.properties = properties;
+
+        // Configure the CSV file with the necessary columns
+        this.csvWriter = createCsvWriter.createObjectCsvWriter({
+            path: 'request_times.csv',
+            header: [
+                { id: 'date', title: 'Date' },
+                { id: 'reqTime', title: 'Request Time (ms)' },
+                { id: 'reqFailed', title: 'Request failed' },
+            ],
+            append: true,  // pour ajouter au fichier existant
+        });
+
+        // Clear the content of the CSV file
+        fs.writeFileSync('request_times.csv', '');
+
+        // Write the header
+        this.writeToCsv_({
+            date: 'Date',
+            reqTime: 'Request time (ms)',
+            reqFailed: 'Status',
+        });
     }
 
     /**
@@ -40,42 +65,61 @@ export class APITester {
     public startTest() {
         setInterval(async () => {
 
+            // Start timestamp
             const startDate = Date.now();
 
-            await this.runRequests_();
+            // Run requests
+            const reqSuccess = await this.runRequests_();
 
+            // End timestamp
             const endDate = Date.now();
 
+            // REquest time
             const reqTime = endDate - startDate;
             console.log('/!\\ ------- reqTime ------- /!\\', reqTime);
 
+            // Add data to report
+            await this.writeToCsv_({
+                date: new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString(),
+                reqTime,
+                reqFailed: reqSuccess === false ? 'Error' : '',
+            });
 
-        }, 10000);
+        }, 5000);
     }
 
     /**
      * Run the requests scenario or single request
+     * Returns false if one request failed
      */
-    private async runRequests_() {
+    private async runRequests_(): Promise<boolean> {
         if (this.properties.scenario) {
-            await this.runScenario_({
+            return await this.runScenario_({
                 scenario: this.properties.scenario,
             });
         } else if (this.properties.url) {
-            await this.runRequest_({
+            const res = await this.runRequest_({
                 url: this.properties.url,
                 headers: this.properties.headers,
                 method: this.properties.method,
                 params: this.properties.params,
             });
+            if (res === false) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return false;
         }
     }
 
     /**
      * Runs a scenario
+     * Returns false if one request failed
      * @param opt_options 
      */
-    private async runScenario_(opt_options: RunScenarioOptions) {
+    private async runScenario_(opt_options: RunScenarioOptions): Promise<boolean> {
         const results = [];
         for (let i = 0; i < opt_options.scenario.length; i++) {
 
@@ -86,15 +130,22 @@ export class APITester {
             });
 
             // Runs the request and store data into results
-            results[i] = await this.runRequest_(reqOptions);
+            const res = await this.runRequest_(reqOptions);
+            if (res === false) {
+                return false;
+            } else {
+                results[i] = res;
+            }
         }
+        return true;
     }
 
     /**
      * Runs a request
+     * Returns false if one request failed
      * @param opt_options 
      */
-    private async runRequest_(opt_options: RunRequestOptions) {
+    private async runRequest_(opt_options: RunRequestOptions): Promise<any> {
         const oAxiosInstanceServer: AxiosInstance = axios.create({
             httpsAgent: new https.Agent({
                 rejectUnauthorized: false
@@ -117,10 +168,10 @@ export class APITester {
 
         try {
             const res = await oAxiosInstanceServer(params);
-            console.log('Request ok');
             return res.data;
-        } catch (err) {
-            console.log('Request failed', err, err);
+        } catch (err: any) {
+            console.log('Request failed', err.response.data);
+            return false;
         }
     }
 
@@ -169,6 +220,18 @@ export class APITester {
         } else {
             // If the value is neither an object nor an array, apply the callback function directly
             return callback(obj);
+        }
+    }
+
+    /**
+     * Add data into the CSV
+     * @param data 
+     */
+    private async writeToCsv_(data: any) {
+        try {
+            await this.csvWriter.writeRecords([data]);
+        } catch (error) {
+            console.error('Error writing to CSV:', error);
         }
     }
 }
