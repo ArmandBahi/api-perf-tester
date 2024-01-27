@@ -20,7 +20,7 @@ Then run `npm start -- runTest --period=5 --project=config.json --result=result.
 - `url` : (string) request URL
 - `headers` : (object) request headers 
 - `method` : (string) get/post/put/detele
-- `params` : (object) rquest parameters. As query if method=get, body otherwise
+- `params` : (object) request parameters. As query if method=get, body otherwise
 
 example : 
 ```json
@@ -38,7 +38,7 @@ example :
 
 #### Scenario
 
-- `scenario` : array of  sigle request objects, braces as **jmespath** queries could be use to ge previous requests results
+- `scenario` : array of sigle request objects, braces as **jmespath** queries could be use to ge previous requests results
 
 example : 
 ```json
